@@ -1,0 +1,11 @@
+###############################################################################
+# Bazel now uses Bzlmod by default to manage external dependencies.
+# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
+#
+# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
+###############################################################################
+bazel_dep(name = "rules_cc", version = "0.2.18")
+bazel_dep(name = "pico-sdk", version = "2.2.0")
+
+register_toolchains("@pico-sdk//bazel/toolchain:all")
+
