@@ -1,0 +1,26 @@
+# BUILD
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "my_tusb_config",
+    hdrs = ["src/my_tusb_config.h"],
+    defines = ["CFG_TUSB_CONFIG_FILE=\\\"src/my_tusb_config.h\\\""],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "macro-keyboard",
+    srcs = [
+        "src/main.c",
+        "src/usb_descriptors.c",
+        "src/usb_descriptors.h",
+        "src/macro_button.c",
+        "src/macro_button.h",
+    ],
+    deps = [
+        ":my_tusb_config",
+        "@pico-sdk//src/rp2_common/pico_stdlib:pico_stdlib",
+        "@tinyusb//:tinyusb",
+    ],
+)

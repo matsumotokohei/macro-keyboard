@@ -4,8 +4,25 @@
 #
 # For more details, please check https://github.com/bazelbuild/bazel/issues/18958
 ###############################################################################
+module(name = "macro_key", version = "1.0.0")
+
+bazel_dep(name = "bazel_features", version = "1.47.0")
+bazel_dep(name = "bazel_skylib", version = "1.8.0")
 bazel_dep(name = "rules_cc", version = "0.2.18")
+bazel_dep(name = "platforms", version = "0.0.10")
 bazel_dep(name = "pico-sdk", version = "2.2.0")
 
-register_toolchains("@pico-sdk//bazel/toolchain:all")
+local_path_override(
+    module_name = "pico-sdk",
+    path = "./pico-sdk"
+)
 
+new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
+new_local_repository(
+    name = "tinyusb",
+    path = "./pico-sdk/lib/tinyusb",
+    build_file = "@pico-sdk//:src/rp2_common/tinyusb/tinyusb.BUILD"
+)
+
+## toolchain
+register_toolchains("@pico-sdk//bazel/toolchain:all")
