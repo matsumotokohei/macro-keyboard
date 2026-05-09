@@ -7,7 +7,7 @@ enum {
 	BLINK_NOT_MOUNTED = 250,
 	BLINK_MOUNTED = 1000,
 	BLINK_SUSPENDED = 2500,
-	KEY_INPUT_INTERVAL_MS = 250,
+	KEY_INPUT_INTERVAL_MS = 50,
 };
 
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
@@ -59,18 +59,60 @@ void send_hid_report(uint8_t report_id, uint32_t key) {
 	switch(report_id) {
 	case REPORT_ID_KEYBOARD:
 		static bool has_keyboard_key = false;
+		static bool has_consumer_key = false;
+		uint8_t modifiers = 0;
+		uint8_t keycode[6] = { 0 };
+		uint16_t usage = 0;
 
 		if ( key ) {
-			uint8_t modifiers = KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_LEFTALT;
-			uint8_t keycode[6] = { 0 };
-
-			keycode[0] = (uint8_t)key;
-
-			tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode);
-			has_keyboard_key = true;
+			switch (key) {
+			case HID_KEY_ARROW_RIGHT:
+				modifiers = KEYBOARD_MODIFIER_LEFTGUI | KEYBOARD_MODIFIER_LEFTSHIFT;
+				keycode[0] = (uint8_t)key;
+				tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode);
+				has_keyboard_key = true;
+				break;
+			case HID_KEY_F1:
+			case HID_KEY_F2:
+			case HID_KEY_F10:
+				modifiers = KEYBOARD_MODIFIER_LEFTCTRL | KEYBOARD_MODIFIER_LEFTALT;
+				keycode[0] = (uint8_t)key;
+				tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode);
+				has_keyboard_key = true;
+				break;
+			case HID_KEY_F4:
+				modifiers = KEYBOARD_MODIFIER_LEFTALT;
+				keycode[0] = (uint8_t)key;
+				tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifiers, keycode);
+				has_keyboard_key = true;
+				break;
+			case HID_KEY_VOLUME_UP:
+				usage = 0xE9; // Volume Up
+				tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &usage, sizeof(usage));
+				tud_hid_report(REPORT_ID_CONSUMER_CONTROL, 0, sizeof(usage)); // キーを離す処理
+				has_consumer_key = true;
+				break;
+			case HID_KEY_VOLUME_DOWN:
+				usage = 0xEA; // Volume Down
+				tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &usage, sizeof(usage));
+				tud_hid_report(REPORT_ID_CONSUMER_CONTROL, 0, sizeof(usage)); // キーを離す処理
+				has_consumer_key = true;
+				break;
+			case HID_KEY_MUTE:
+				usage = 0xE2; // Mute
+				tud_hid_report(REPORT_ID_CONSUMER_CONTROL, &usage, sizeof(usage));
+				tud_hid_report(REPORT_ID_CONSUMER_CONTROL, 0, sizeof(usage)); // キーを離す処理
+				has_consumer_key = true;
+				break;
+			default:
+				/* no work */
+				break;
+			}
 		} else {
-			if ( has_keyboard_key) tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
+			if ( has_keyboard_key ) tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
 			has_keyboard_key = false;
+			if ( has_consumer_key ) tud_hid_report(REPORT_ID_CONSUMER_CONTROL, 0, sizeof(usage));
+			has_consumer_key = false;
 		}
 		break;
 
@@ -87,11 +129,15 @@ static void hid_task(void) {
 	start_ms += interval_ms;
 
 	uint32_t const key = macro_button_key();
+	static uint32_t bak_key = 0;
 
-	if ( tud_suspended() && key ) {
-		tud_remote_wakeup();
-	} else {
-		send_hid_report(REPORT_ID_KEYBOARD, key);
+	if ( bak_key != key ) {
+		bak_key = key;
+		if ( tud_suspended() && key ) {
+			tud_remote_wakeup();
+		} else {
+			send_hid_report(REPORT_ID_KEYBOARD, key);
+		}
 	}
 }
 

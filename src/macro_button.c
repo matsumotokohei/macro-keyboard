@@ -4,15 +4,15 @@
 #include "macro_button.h"
 
 /* 2x4 */
-static const struct macro_button_t macro_buttons[MACRO_BUTTON_MAX] = {
-	{ 16, HID_KEY_F1 }, // PIN21
-	{ 17, HID_KEY_F2 }, // PIN22
-	{ 18, HID_KEY_F3 }, // PIN24
-	{ 19, HID_KEY_F4 }, // PIN25
-	{ 20, HID_KEY_F5 }, // PIN26
-	{ 21, HID_KEY_F6 }, // PIN27
-	{ 14, HID_KEY_F7 }, // PIN19
-	{ 15, HID_KEY_F8 }, // PIN20
+static struct macro_button_t macro_buttons[MACRO_BUTTON_MAX] = {
+	{ 16, HID_KEY_F10 }, // PIN21
+	{ 17, HID_KEY_VOLUME_DOWN }, // PIN22
+	{ 18, HID_KEY_VOLUME_UP }, // PIN24
+	{ 19, HID_KEY_MUTE }, // PIN25
+	{ 20, HID_KEY_ARROW_RIGHT }, // PIN26 Win+右
+	{ 21, HID_KEY_F1 }, // PIN27
+	{ 14, HID_KEY_F2 }, // PIN19
+	{ 15, HID_KEY_F4 }, // PIN20 Alt+F4
 };
 
 /**
@@ -37,16 +37,23 @@ void macro_button_init(void) {
  */
 uint8_t macro_button_key(void) {
 	uint8_t key = 0;
+	static uint8_t last_key = 0;
 
 	for (uint i = 0; i < MACRO_BUTTON_MAX; i++) {
-		if ( macro_buttons[i].pin >= 0 ) {
-			if ( gpio_get(macro_buttons[i].pin) == 0 ) { // Active low
-				key = macro_buttons[i].hid_key; // Return the corresponding HID key for the first pressed button
-				break;
-			}
-		} else {
-			// Invalid pin, handle error if necessary
+		uint8_t val = 1;
+
+		val = gpio_get(macro_buttons[i].pin);
+
+		if ( val == 0 ) { // Active low, detect falling edge
+			key = macro_buttons[i].hid_key; // Return the corresponding HID key for the first pressed button
+			break;
 		}
+	}
+
+	if ( last_key != key ) {
+		last_key = key;
+	} else {
+		key = 0; // No change, treat as no key pressed
 	}
 
 	return key;
